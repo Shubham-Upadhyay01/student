@@ -9,6 +9,7 @@ import Profile from "./pages/profile";
 import CompanyReg from './pages/companyReg';
 import CompanyDashboard from "./pages/CompanyDashboard";
 import SkillsDashboard from "./pages/SkillsDashboard";
+import UserProfile from "./pages/UserProfile";
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
           <Route path="/comp" element={<CompanyReg />} />
           <Route path="/company-dashboard" element={<CompanyDashboard/>}/>
           <Route path="/skillsdashboard" element={<SkillsDashboard/>}/>
+          <Route path="/userprofile" element={<UserProfile/>}/>
         </Routes>
       </div>
     </Router>

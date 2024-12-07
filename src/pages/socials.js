@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Box, Typography, IconButton, Button, Container, Grid } from "@mui/material";
 import { FaGithub, FaLinkedin, FaTwitter, FaInstagram, FaWallet } from "react-icons/fa";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "./supabaseClient";
 import { keyframes } from "@mui/system";
 
@@ -20,9 +20,11 @@ const Socials = () => {
     twitter: false,
     instagram: false,
     metamask: false,
+    aadhaar: false,
   });
   const [account, setAccount] = useState(null);
   const email = state?.email;
+  const navigate = useNavigate(); // Hook for navigation
 
   useEffect(() => {
     const fetchName = async () => {
@@ -129,6 +131,12 @@ const Socials = () => {
     } else {
       alert("Please install MetaMask to use this feature.");
     }
+  };
+
+  // Placeholder for Aadhaar connection handler
+  const handleAadhaarConnect = () => {
+    alert("Aadhaar connection feature is not implemented yet.");
+    // Ideally, you'd integrate with Aadhaar API here
   };
 
   const socialButtons = [
@@ -277,6 +285,48 @@ const Socials = () => {
                     account.length - 4
                   )}`
                 : "Connect MetaMask"}
+            </Button>
+
+            {/* Aadhaar Connect Button */}
+            <Button
+              variant="contained"
+              onClick={handleAadhaarConnect}
+              sx={{
+                backgroundColor: connectedAccounts.aadhaar
+                  ? "rgba(255,255,255,0.3)"
+                  : "rgba(255,255,255,0.2)",
+                color: "#ffffff",
+                fontSize: "1rem",
+                padding: "12px 24px",
+                borderRadius: "50px",
+                transition: "all 0.3s ease",
+                "&:hover": {
+                  backgroundColor: "rgba(255,255,255,0.4)",
+                  transform: "translateY(-5px)",
+                },
+              }}
+            >
+              {connectedAccounts.aadhaar ? "Aadhaar Connected" : "Connect Aadhaar"}
+            </Button>
+          </Box>
+
+          {/* Go Next Button */}
+          <Box sx={{ marginTop: "30px" }}>
+            <Button
+              variant="contained"
+              onClick={() => navigate("/UserProfile")} // Navigate to UserProfile page
+              sx={{
+                backgroundColor: "#4CAF50",
+                color: "#ffffff",
+                padding: "12px 24px",
+                fontSize: "1.2rem",
+                borderRadius: "50px",
+                "&:hover": {
+                  backgroundColor: "#45a049",
+                },
+              }}
+            >
+              Go Next
             </Button>
           </Box>
         </Box>
