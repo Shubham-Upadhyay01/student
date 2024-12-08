@@ -1,15 +1,28 @@
 import React, { useState, useEffect } from "react";
-import { Box, Typography, IconButton, Button, Container, Grid } from "@mui/material";
-import { FaGithub, FaLinkedin, FaTwitter, FaInstagram, FaWallet } from "react-icons/fa";
+import { 
+  Box, 
+  Typography, 
+  IconButton, 
+  Button, 
+  Container, 
+  Grid, 
+  Dialog, 
+  DialogTitle, 
+  DialogContent, 
+  DialogActions, 
+  TextField, 
+  Snackbar, 
+  Alert 
+} from "@mui/material";
+import { 
+  FaGithub, 
+  FaLinkedin, 
+  FaTwitter, 
+  FaInstagram, 
+  FaWallet 
+} from "react-icons/fa";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "./supabaseClient";
-import { keyframes } from "@mui/system";
-
-const socialPulse = keyframes`
-  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,255,255,0.4); }
-  70% { transform: scale(1.05); box-shadow: 0 0 0 15px rgba(255,255,255,0); }
-  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,255,255,0); }
-`;
 
 const Socials = () => {
   const { state } = useLocation();
@@ -22,91 +35,146 @@ const Socials = () => {
     metamask: false,
     aadhaar: false,
   });
+  const [socialLinks, setSocialLinks] = useState({
+    github: "",
+    linkedin: "",
+    twitter: "",
+    instagram: "",
+  });
+  const [openDialog, setOpenDialog] = useState(null);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [snackbarSeverity, setSnackbarSeverity] = useState("success");
   const [account, setAccount] = useState(null);
-  const email = state?.email;
-  const navigate = useNavigate(); // Hook for navigation
+  
+  // Ensure email is extracted correctly
+  const email = state?.email || localStorage.getItem('userEmail');
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchName = async () => {
-      if (!email) {
-        console.error("No email provided");
-        return;
-      }
-
-      try {
-        const { data, error } = await supabase
-          .from("answers")
-          .select("answer")
-          .eq("email", email)
-          .eq("question_number", 2);
-
-        if (error) throw error;
-
-        if (data.length > 0) {
-          setName(data[0].answer || "");
-        }
-      } catch (error) {
-        console.error("Error fetching name: ", error);
-      }
-    };
-
-    const fetchConnections = async () => {
-      if (!email) return;
-
-      try {
-        const socialTypes = ["github", "linkedin", "twitter", "instagram"];
-        const updates = {};
-
-        for (const type of socialTypes) {
-          const { data } = await supabase
-            .from(`${type}_accounts`)
-            .select("*")
-            .eq("email", email)
-            .single();
-          updates[type] = !!data;
-        }
-
-        setConnectedAccounts((prev) => ({ ...prev, ...updates }));
-      } catch (error) {
-        console.error("Error fetching social connections:", error);
-      }
-    };
-
-    fetchName();
-    fetchConnections();
-  }, [email]);
-
-  const handleSocialConnect = async (provider) => {
+  // Validation helper
+  const isValidUrl = (string) => {
     try {
-      const { user, session, error } = await supabase.auth.signInWithOAuth({
-        provider,
-      });
-
-      if (error) throw error;
-
-      if (user && session) {
-        const userMetadata = user.user_metadata;
-
-        const upsertData = {
-          email,
-          [`${provider}_id`]: userMetadata.user_id,
-          [`${provider}_username`]: userMetadata.user_name,
-          [`${provider}_avatar`]: userMetadata.avatar_url,
-        };
-
-        const { error: upsertError } = await supabase
-          .from(`${provider}_accounts`)
-          .upsert(upsertData);
-
-        if (upsertError) throw upsertError;
-
-        setConnectedAccounts((prev) => ({ ...prev, [provider]: true }));
-      }
-    } catch (error) {
-      console.error(`Error connecting ${provider}:`, error);
+      new URL(string);
+      return true;
+    } catch (_) {
+      return false;
     }
   };
 
+  // Snackbar helper
+  const showSnackbar = (message, severity = "success") => {
+    setSnackbarMessage(message);
+    setSnackbarSeverity(severity);
+    setSnackbarOpen(true);
+  };
+
+  // Fetch initial data
+  useEffect(() => {
+    if (!email) {
+      showSnackbar("No email found. Please log in again.", "error");
+      return;
+    }
+
+    const fetchInitialData = async () => {
+      try {
+        // Fetch name
+        const { data: nameData, error: nameError } = await supabase
+          .from("answers")
+          .select("answer")
+          .eq("email", email)
+          .eq("question_number", 2)
+          .single();
+
+        if (nameError) throw nameError;
+        if (nameData) setName(nameData.answer || "");
+
+        // Fetch social links
+        const { data: linksData, error: linksError } = await supabase
+          .from("links")
+          .select("*")
+          .eq("email", email)
+          .single();
+
+        if (linksError && linksError.code !== 'PGRST116') throw linksError;
+
+        if (linksData) {
+          // Update social links
+          const links = {
+            github: linksData.github || "",
+            linkedin: linksData.linkedin || "",
+            twitter: linksData.twitter || "",
+            instagram: linksData.instagram || "",
+          };
+
+          setSocialLinks(links);
+
+          // Update connected accounts
+          const connections = {
+            github: !!linksData.github,
+            linkedin: !!linksData.linkedin,
+            twitter: !!linksData.twitter,
+            instagram: !!linksData.instagram,
+          };
+
+          setConnectedAccounts(prev => ({ ...prev, ...connections }));
+        }
+      } catch (error) {
+        console.error("Error fetching initial data:", error);
+        showSnackbar("Failed to fetch initial data", "error");
+      }
+    };
+
+    fetchInitialData();
+  }, [email]);
+
+  // Social link save handler
+  const handleSocialLinkSave = async (provider) => {
+    const link = socialLinks[provider];
+
+    // Validate link
+    if (link && !isValidUrl(link)) {
+      showSnackbar(`Please enter a valid ${provider} URL`, "error");
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from("links")
+        .upsert({
+          email,
+          [provider]: link
+        }, {
+          onConflict: 'email'
+        })
+        .select();
+
+      if (error) throw error;
+
+      // Update local state
+      setConnectedAccounts(prev => ({
+        ...prev,
+        [provider]: !!link
+      }));
+
+      showSnackbar(`${provider.charAt(0).toUpperCase() + provider.slice(1)} link saved successfully`, "success");
+      setOpenDialog(null);
+    } catch (error) {
+      console.error(`Error saving ${provider} link:`, error);
+      showSnackbar(`Failed to save ${provider} link: ${error.message}`, "error");
+    }
+  };
+
+  // Dialog open handler
+  const handleLinkDialogOpen = (provider) => {
+    setOpenDialog(provider);
+  };
+
+  // Link change handler
+  const handleLinkChange = (provider, value) => {
+    setSocialLinks((prev) => ({ ...prev, [provider]: value }));
+  };
+
+  // MetaMask connection handler
   const handleMetaMaskConnect = async () => {
     if (typeof window.ethereum !== "undefined") {
       try {
@@ -125,44 +193,46 @@ const Socials = () => {
         if (error) throw error;
 
         setConnectedAccounts((prev) => ({ ...prev, metamask: true }));
+        showSnackbar("MetaMask connected successfully", "success");
       } catch (error) {
         console.error("Error connecting to MetaMask:", error);
+        showSnackbar("Failed to connect MetaMask", "error");
       }
     } else {
-      alert("Please install MetaMask to use this feature.");
+      showSnackbar("Please install MetaMask to use this feature", "warning");
     }
   };
 
-  // Placeholder for Aadhaar connection handler
+  // Aadhaar connection handler
   const handleAadhaarConnect = () => {
-    alert("Aadhaar connection feature is not implemented yet.");
-    // Ideally, you'd integrate with Aadhaar API here
+    showSnackbar("Aadhaar connection feature is not implemented yet", "info");
   };
 
+  // Social buttons configuration
   const socialButtons = [
     {
       provider: "github",
       icon: FaGithub,
       color: connectedAccounts.github ? "#4CAF50" : "#ffffff",
-      onClick: () => handleSocialConnect("github"),
+      onClick: () => handleLinkDialogOpen("github"),
     },
     {
       provider: "linkedin",
       icon: FaLinkedin,
       color: connectedAccounts.linkedin ? "#0077B5" : "#ffffff",
-      onClick: () => handleSocialConnect("linkedin"),
+      onClick: () => handleLinkDialogOpen("linkedin"),
     },
     {
       provider: "twitter",
       icon: FaTwitter,
       color: connectedAccounts.twitter ? "#1DA1F2" : "#ffffff",
-      onClick: () => handleSocialConnect("twitter"),
+      onClick: () => handleLinkDialogOpen("twitter"),
     },
     {
       provider: "instagram",
       icon: FaInstagram,
       color: connectedAccounts.instagram ? "#E1306C" : "#ffffff",
-      onClick: () => handleSocialConnect("instagram"),
+      onClick: () => handleLinkDialogOpen("instagram"),
     },
   ];
 
@@ -179,22 +249,26 @@ const Socials = () => {
         padding: "20px",
       }}
     >
-      <video
-        autoPlay
-        loop
-        muted
-        playsInline
-        src="./socials.mp4"
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
-          zIndex: -1,
-        }}
-      />
+     
+ 
+  
+    {/* Background Video */}
+    <video
+      autoPlay
+      loop
+      muted
+      style={{
+        position: "absolute",
+        width: "100%",
+        height: "100%",
+        objectFit: "cover",
+        zIndex: -1,
+        filter: "brightness(0.5)", // Darken the video slightly
+      }}
+    >
+      <source src="./socials.mp4" type="video/mp4" />
+      Your browser does not support the video tag.
+    </video>
       <Container maxWidth="md">
         <Box
           sx={{
@@ -206,30 +280,13 @@ const Socials = () => {
             boxShadow: "0 8px 32px 0 rgba(0, 0, 0, 0.3)",
           }}
         >
-          <Typography
-            variant="h2"
-            gutterBottom
-            sx={{
-              fontSize: { xs: "2rem", md: "3.5rem" },
-              fontWeight: 600,
-              marginBottom: "30px",
-              color: "#ffffff",
-            }}
-          >
-            {name
-              ? `Hey, ${name}! Connect Your Socials`
-              : "Hey, Connect Your Socials"}
+          <Typography variant="h2" gutterBottom>
+            {name ? `Hey, ${name}! Add Your Social Links` : "Add Your Social Links"}
           </Typography>
 
-          <Grid
-            container
-            spacing={3}
-            justifyContent="center"
-            alignItems="center"
-            sx={{ marginBottom: "30px" }}
-          >
-            {socialButtons.map((social, index) => (
-              <Grid item key={index}>
+          <Grid container spacing={3} justifyContent="center" alignItems="center">
+            {socialButtons.map((social) => (
+              <Grid item key={social.provider}>
                 <IconButton
                   onClick={social.onClick}
                   sx={{
@@ -238,13 +295,7 @@ const Socials = () => {
                     background: "rgba(255,255,255,0.2)",
                     borderRadius: "50%",
                     padding: "15px",
-                    transition: "all 0.3s ease",
-                    animation: `${socialPulse} 2s infinite`,
-                    opacity: social.connected ? 0.5 : 1,
-                    "&:hover": {
-                      transform: "scale(1.1)",
-                      background: "rgba(255,255,255,0.3)",
-                    },
+                    opacity: connectedAccounts[social.provider] ? 0.5 : 1,
                   }}
                 >
                   <social.icon />
@@ -253,84 +304,85 @@ const Socials = () => {
             ))}
           </Grid>
 
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              gap: "20px",
-            }}
-          >
-            <Button
-              variant="contained"
+          <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center', gap: 2 }}>
+            <Button 
+              variant="contained" 
               onClick={handleMetaMaskConnect}
               startIcon={<FaWallet />}
-              sx={{
-                backgroundColor: connectedAccounts.metamask
-                  ? "rgba(255,255,255,0.3)"
-                  : "rgba(255,255,255,0.2)",
-                color: "#ffffff",
-                fontSize: "1rem",
-                padding: "12px 24px",
-                borderRadius: "50px",
-                transition: "all 0.3s ease",
-                "&:hover": {
-                  backgroundColor: "rgba(255,255,255,0.4)",
-                  transform: "translateY(-5px)",
-                },
-              }}
             >
               {connectedAccounts.metamask
-                ? `Connected: ${account.substring(0, 6)}...${account.substring(
-                    account.length - 4
-                  )}`
+                ? `Connected: ${account?.substring(0, 6)}...${account?.substring(account.length - 4)}`
                 : "Connect MetaMask"}
             </Button>
 
-            {/* Aadhaar Connect Button */}
-            <Button
-              variant="contained"
+            <Button 
+              variant="contained" 
               onClick={handleAadhaarConnect}
-              sx={{
-                backgroundColor: connectedAccounts.aadhaar
-                  ? "rgba(255,255,255,0.3)"
-                  : "rgba(255,255,255,0.2)",
-                color: "#ffffff",
-                fontSize: "1rem",
-                padding: "12px 24px",
-                borderRadius: "50px",
-                transition: "all 0.3s ease",
-                "&:hover": {
-                  backgroundColor: "rgba(255,255,255,0.4)",
-                  transform: "translateY(-5px)",
-                },
-              }}
             >
               {connectedAccounts.aadhaar ? "Aadhaar Connected" : "Connect Aadhaar"}
             </Button>
           </Box>
 
-          {/* Go Next Button */}
-          <Box sx={{ marginTop: "30px" }}>
+          <Box sx={{ mt: 3 }}>
             <Button
               variant="contained"
-              onClick={() => navigate("/UserProfile")} // Navigate to UserProfile page
-              sx={{
-                backgroundColor: "#4CAF50",
-                color: "#ffffff",
-                padding: "12px 24px",
-                fontSize: "1.2rem",
-                borderRadius: "50px",
-                "&:hover": {
-                  backgroundColor: "#45a049",
-                },
-              }}
+              color="primary"
+              onClick={() => navigate("/UserProfile")}
             >
               Go Next
             </Button>
           </Box>
         </Box>
       </Container>
+
+      {/* Social Link Input Dialogs */}
+      {["github", "linkedin", "twitter", "instagram"].map((provider) => (
+        <Dialog
+          key={provider}
+          open={openDialog === provider}
+          onClose={() => setOpenDialog(null)}
+        >
+          <DialogTitle>
+            Add {provider.charAt(0).toUpperCase() + provider.slice(1)} Link
+          </DialogTitle>
+          <DialogContent>
+            <TextField
+              autoFocus
+              margin="dense"
+              label={`${provider.charAt(0).toUpperCase() + provider.slice(1)} Profile URL`}
+              type="url"
+              fullWidth
+              value={socialLinks[provider]}
+              onChange={(e) => handleLinkChange(provider, e.target.value)}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setOpenDialog(null)}>Cancel</Button>
+            <Button 
+              onClick={() => handleSocialLinkSave(provider)}
+              color="primary"
+            >
+              Save
+            </Button>
+          </DialogActions>
+        </Dialog>
+      ))}
+
+      {/* Snackbar for Feedback */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={() => setSnackbarOpen(false)} 
+          severity={snackbarSeverity}
+          sx={{ width: '100%' }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
