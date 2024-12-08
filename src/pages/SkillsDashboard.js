@@ -18,9 +18,11 @@ import {
   Search as SearchIcon,
   List as ListIcon
 } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';  // Import useNavigate for page redirection
 
 const SkillsDashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
+  const navigate = useNavigate(); // useNavigate hook for page navigation
 
   const skills = [
     'Java', 'Python', 'JavaScript', 'Data Analyst', 
@@ -31,6 +33,18 @@ const SkillsDashboard = () => {
   const filteredSkills = skills.filter(skill => 
     skill.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Function to handle 'Find Jobs' button click
+  const handleFindJobs = () => {
+    console.log('Redirecting to job listings...');
+    navigate('/jobs');  // Redirect to the '/jobs' page
+  };
+
+  // Function to handle 'Advanced Search' button click
+  const handleAdvancedSearch = () => {
+    console.log('Redirecting to advanced search...');
+    navigate('/advanced-search');  // Redirect to the '/advanced-search' page
+  };
 
   return (
     <Box 
@@ -161,6 +175,7 @@ const SkillsDashboard = () => {
                         backgroundColor: '#2c3e50',
                         '&:hover': { backgroundColor: '#34495e' }
                       }}
+                      onClick={handleFindJobs}  // Trigger find jobs action
                     >
                       Find Jobs
                     </Button>
@@ -177,6 +192,7 @@ const SkillsDashboard = () => {
                           borderColor: '#2c3e50' 
                         }
                       }}
+                      onClick={handleAdvancedSearch}  // Trigger advanced search action
                     >
                       Advanced Search
                     </Button>

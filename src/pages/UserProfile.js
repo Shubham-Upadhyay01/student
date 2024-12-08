@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { 
   Box, 
@@ -31,11 +32,69 @@ const UserDashboard = () => {
     email: "Loading...",
     domain: "Loading...",
   });
+
   const [loading, setLoading] = useState(true);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [amount, setAmount] = useState("");
+  const [notifications, setNotifications] = useState([]);
+  const [upcomingEvents, setUpcomingEvents] = useState([]);
+  const [quickLinks, setQuickLinks] = useState([]);
+  const [performance, setPerformance] = useState(0);
+  const [newNotificationsCount, setNewNotificationsCount] = useState(0);
 
   useEffect(() => {
+    // Generate random data for notifications, events, etc.
+    const generateRandomNotifications = () => {
+      const notificationTypes = [
+        "Project Update", 
+        "New Milestone", 
+        "Team Achievement", 
+        "Deadline Reminder", 
+        "Performance Insight"
+      ];
+      const count = Math.floor(Math.random() * 5) + 1;
+      const generated = Array.from({ length: count }, (_, index) => ({
+        id: index + 1,
+        title: notificationTypes[Math.floor(Math.random() * notificationTypes.length)],
+        message: `Random notification message ${index + 1}`,
+        time: `${Math.floor(Math.random() * 24)} hours ago`
+      }));
+      setNotifications(generated);
+      setNewNotificationsCount(count);
+    };
+
+    const generateRandomEvents = () => {
+      const eventTypes = [
+        "Team Strategy Meeting",
+        "Quarterly Review", 
+        "Project Kickoff", 
+        "Client Presentation", 
+        "Training Session"
+      ];
+      const count = Math.floor(Math.random() * 3) + 1;
+      const generated = Array.from({ length: count }, (_, index) => ({
+        id: index + 1,
+        title: eventTypes[Math.floor(Math.random() * eventTypes.length)],
+        date: `${['Mon', 'Tue', 'Wed', 'Thu', 'Fri'][Math.floor(Math.random() * 5)]}, Dec ${Math.floor(Math.random() * 31) + 1}`,
+        time: `${Math.floor(Math.random() * 12) + 1}:${Math.floor(Math.random() * 60)} ${Math.random() > 0.5 ? 'AM' : 'PM'}`
+      }));
+      setUpcomingEvents(generated);
+    };
+
+    const generateRandomLinks = () => {
+      const linkTypes = [
+        "Project Dashboard",
+        "Resource Center", 
+        "Team Collaboration", 
+        "Performance Metrics", 
+        "Learning Portal"
+      ];
+      const count = Math.floor(Math.random() * 5) + 1;
+      const generated = Array.from({ length: count }, (_, index) => ({
+        id: index + 1,
+        title: linkTypes[Math.floor(Math.random() * linkTypes.length)]
+      }));
+      setQuickLinks(generated);
+    };
+
     const fetchUserData = async () => {
       try {
         const { data, error } = await supabase
@@ -52,6 +111,13 @@ const UserDashboard = () => {
           email: data.email,
           domain: data.domain,
         });
+        
+        // Generate random data after successful user data fetch
+        generateRandomNotifications();
+        generateRandomEvents();
+        generateRandomLinks();
+        setPerformance((Math.random() * (5 - 3) + 3).toFixed(2));
+        
         setLoading(false);
       } catch (error) {
         console.error("Error fetching user data:", error);
@@ -315,7 +381,7 @@ const UserDashboard = () => {
                       color: 'rgba(255,255,255,0.6)' 
                     }}
                   >
-                    Performance metrics coming soon!
+                    {(Math.random() * (5 - 3) + 3).toFixed(2)}% Performance
                   </Typography>
                 </DashboardCard>
               </Grid>
@@ -332,7 +398,7 @@ const UserDashboard = () => {
                       color: 'rgba(255,255,255,0.6)' 
                     }}
                   >
-                    No new notifications
+                    {Math.floor(Math.random() * 5)} New Notifications
                   </Typography>
                 </DashboardCard>
               </Grid>
@@ -350,7 +416,7 @@ const UserDashboard = () => {
                       color: 'rgba(255,255,255,0.6)' 
                     }}
                   >
-                    No upcoming events
+                    {Math.floor(Math.random() * 3)} Upcoming Events
                   </Typography>
                 </DashboardCard>
               </Grid>
@@ -367,7 +433,7 @@ const UserDashboard = () => {
                       color: 'rgba(255,255,255,0.6)' 
                     }}
                   >
-                    Additional links coming soon
+                    {Math.floor(Math.random() * 5)} Quick Links
                   </Typography>
                 </DashboardCard>
               </Grid>
@@ -376,67 +442,64 @@ const UserDashboard = () => {
         </Grid>
       </Container>
       <Box
-    sx={{
-      background: "rgba(255,255,255,0.1)",
-      borderRadius: "16px",
-      mt: 4,
-      px: 3,
-      py: 4,
-      textAlign: "center",
-      mx: 2,
-      boxShadow: "0 4px 8px rgba(0,0,0,0.2)",
-      transition: "transform 0.3s ease, box-shadow 0.3s ease",
-      "&:hover": {
-        transform: "translateY(-4px)",
-        boxShadow: "0 8px 16px rgba(0,0,0,0.4)",
-      },
-    }}
-  >
-    <Typography
-      variant="h5"
-      sx={{
-        color: "rgba(255,255,255,0.9)",
-        fontWeight: "600",
-        mb: 2,
-        letterSpacing: "0.5px",
-      }}
-    >
-      Let's get you verified!
-    </Typography>
-    <Typography
-      variant="body1"
-      sx={{
-        color: "rgba(255,255,255,0.7)",
-        mb: 3,
-        fontWeight: "400",
-      }}
-    >
-      Verification helps us ensure your account is secure and trusted.
-    </Typography>
-    <Button
-      variant="contained"
-      sx={{
-        background: "linear-gradient(to right, #ff7e5f, #feb47b)",
-        color: "white",
-        px: 4,
-        py: 1,
-        borderRadius: "24px",
-        fontWeight: "600",
-        textTransform: "none",
-        fontSize: "1rem",
-        "&:hover": {
-          background: "linear-gradient(to right, #feb47b, #ff7e5f)",
-        },
-      }}
-    >
-      Stake to Verify
-    </Button>
-  </Box>
-
+        sx={{
+          background: "rgba(255,255,255,0.1)",
+          borderRadius: "16px",
+          mt: 4,
+          px: 3,
+          py: 4,
+          textAlign: "center",
+          mx: 2,
+          boxShadow: "0 4px 8px rgba(0,0,0,0.2)",
+          transition: "transform 0.3s ease, box-shadow 0.3s ease",
+          "&:hover": {
+            transform: "translateY(-4px)",
+            boxShadow: "0 8px 16px rgba(0,0,0,0.4)",
+          },
+        }}
+      >
+        <Typography
+          variant="h5"
+          sx={{
+            color: "rgba(255,255,255,0.9)",
+            fontWeight: "600",
+            mb: 2,
+            letterSpacing: "0.5px",
+          }}
+        >
+          Let's get you verified!
+        </Typography>
+        <Typography
+          variant="body1"
+          sx={{
+            color: "rgba(255,255,255,0.7)",
+            mb: 3,
+            fontWeight: "400",
+          }}
+        >
+          Verification helps us ensure your account is secure and trusted.
+        </Typography>
+        <Button
+          variant="contained"
+          sx={{
+            background: "linear-gradient(to right, #ff7e5f, #feb47b)",
+            color: "white",
+            px: 4,
+            py: 1,
+            borderRadius: "24px",
+            fontWeight: "600",
+            textTransform: "none",
+            fontSize: "1rem",
+            "&:hover": {
+              background: "linear-gradient(to right, #feb47b, #ff7e5f)",
+            },
+          }}
+        >
+          Stake to Verify
+        </Button>
+      </Box>
     </Box>
   );
 };
-
-   
 
 export default UserDashboard;

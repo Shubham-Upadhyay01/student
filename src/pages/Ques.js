@@ -20,16 +20,59 @@ const Ques = () => {
   const navigate = useNavigate();
   const videoRef = useRef(null);
 
+  // Updated questions to include skills
   const questions = [
     "What's your email address?",
     "What's your name?",
     "Select your professional domain",
+    "What are your top skills?"
   ];
 
-  const domains = [
-    "Tech", "Marketing", "Sales", "Design", "Finance", 
-    "Healthcare", "Education", "Gaming", "Content Creation", "Data Science"
-  ];
+  // Domain to skills mapping
+  const domainSkills = {
+    "Tech": [
+      "React JS", "Node.js", "Python", "JavaScript", 
+      "TypeScript", "AWS", "Docker", "Machine Learning"
+    ],
+    "Marketing": [
+      "Social Media Marketing", "SEO", "Content Strategy", 
+      "Google Analytics", "Copywriting", "Email Marketing", "Brand Management"
+    ],
+    "Sales": [
+      "CRM", "Negotiation", "Relationship Building", 
+      "Closing Techniques", "Lead Generation", "Consultative Selling"
+    ],
+    "Design": [
+      "UI/UX", "Figma", "Adobe Creative Suite", "Sketch", 
+      "Graphic Design", "Interaction Design", "Prototyping"
+    ],
+    "Finance": [
+      "Financial Analysis", "Excel", "Accounting", "Risk Management", 
+      "Investment Strategy", "Budgeting", "Financial Modeling"
+    ],
+    "Healthcare": [
+      "Patient Care", "Medical Coding", "Healthcare IT", 
+      "Clinical Research", "Healthcare Management", "Telemedicine"
+    ],
+    "Education": [
+      "Curriculum Development", "E-Learning", "Instructional Design", 
+      "Educational Technology", "Teaching", "Training & Development"
+    ],
+    "Gaming": [
+      "Game Design", "Unity", "Unreal Engine", "C++", 
+      "3D Modeling", "Game Art", "Gameplay Programming"
+    ],
+    "Content Creation": [
+      "Video Editing", "Photography", "Writing", "Social Media Content", 
+      "Storytelling", "Adobe Premiere", "YouTube Marketing"
+    ],
+    "Data Science": [
+      "Python", "Machine Learning", "Data Visualization", 
+      "SQL", "R", "Tableau", "Statistical Analysis"
+    ]
+  };
+
+  const domains = Object.keys(domainSkills);
 
   const [displayedText, setDisplayedText] = useState("");
   const [answer, setAnswer] = useState("");
@@ -38,15 +81,17 @@ const Ques = () => {
     email: "",
     name: "",
     domain: "",
+    skills: [],
   });
   const [introCompleted, setIntroCompleted] = useState(false);
   const [selectedDomain, setSelectedDomain] = useState(null);
+  const [selectedSkills, setSelectedSkills] = useState([]);
   
   // Supabase submission states
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
 
-  // Typewriter effect
+  // Typewriter effect (remains the same as previous implementation)
   const typeWriter = useCallback((text, callback) => {
     let currentText = "";
     let charIndex = 0;
@@ -112,15 +157,29 @@ const Ques = () => {
     setSelectedDomain(domain);
   };
 
+  const handleSkillSelect = (skill) => {
+    setSelectedSkills(prev => 
+      prev.includes(skill) 
+        ? prev.filter(s => s !== skill)
+        : [...prev, skill]
+    );
+  };
+
   const proceedToSocials = async () => {
-    if (!selectedDomain) {
+    if (currentQuestionIndex === 2 && !selectedDomain) {
       alert("Please select a professional domain");
+      return;
+    }
+
+    if (currentQuestionIndex === 3 && selectedSkills.length === 0) {
+      alert("Please select at least one skill");
       return;
     }
 
     const finalFormData = {
       ...formData,
-      domain: selectedDomain
+      domain: selectedDomain,
+      skills: selectedSkills
     };
 
     try {
@@ -134,6 +193,7 @@ const Ques = () => {
             email: finalFormData.email,
             name: finalFormData.name,
             domain: finalFormData.domain,
+            skills: finalFormData.skills,
             created_at: new Date()
           }
         ])
@@ -158,6 +218,94 @@ const Ques = () => {
   };
 
   const renderQuestionContent = () => {
+    // Handling skills selection after domain
+    if (currentQuestionIndex === 3) {
+      const availableSkills = selectedDomain ? domainSkills[selectedDomain] : [];
+
+      return (
+        <motion.div
+          key="skills-selection"
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -50 }}
+          transition={{ duration: 0.3 }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              flexWrap: "wrap",
+              justifyContent: "center",
+              gap: 3,
+              mt: 6,
+              mb: 6,
+              maxWidth: "100%",
+              overflowX: "auto",
+              px: 3,
+            }}
+          >
+            {availableSkills.map((skill) => (
+              <motion.div 
+                key={skill} 
+                whileHover={{ scale: 1.05 }} 
+                whileTap={{ scale: 0.95 }}
+                style={{ margin: '0.75rem' }}
+              >
+                <Button
+                  variant={selectedSkills.includes(skill) ? "contained" : "outlined"}
+                  onClick={() => handleSkillSelect(skill)}
+                  sx={{
+                    borderRadius: 6,
+                    px: 4,
+                    py: 2,
+                    fontSize: isMobile ? "1rem" : "1.3rem",
+                    whiteSpace: "nowrap",
+                    backgroundColor: selectedSkills.includes(skill) 
+                      ? "primary.main" 
+                      : "transparent",
+                    color: selectedSkills.includes(skill) ? "white" : "primary.main",
+                    borderColor: "primary.main",
+                    "&:hover": {
+                      backgroundColor: selectedSkills.includes(skill) 
+                        ? "primary.dark" 
+                        : "rgba(0,0,0,0.1)",
+                    },
+                  }}
+                >
+                  {skill}
+                </Button>
+              </motion.div>
+            ))}
+          </Box>
+          {selectedSkills.length > 0 && (
+            <Box 
+              sx={{ 
+                display: 'flex', 
+                justifyContent: 'center', 
+                mt: 6 
+              }}
+            >
+              <Button
+                variant="contained"
+                color="primary"
+                size="large"
+                onClick={proceedToSocials}
+                disabled={submitting}
+                sx={{
+                  borderRadius: 6,
+                  px: 8,
+                  py: 2,
+                  fontSize: isMobile ? "1.2rem" : "1.5rem",
+                }}
+              >
+                {submitting ? "Saving..." : "Next"}
+              </Button>
+            </Box>
+          )}
+        </motion.div>
+      );
+    }
+
+    // Existing domain selection logic (for index 2)
     if (currentQuestionIndex === 2) {
       return (
         <motion.div
@@ -225,8 +373,7 @@ const Ques = () => {
                 variant="contained"
                 color="primary"
                 size="large"
-                onClick={proceedToSocials}
-                disabled={submitting}
+                onClick={() => setCurrentQuestionIndex(3)}
                 sx={{
                   borderRadius: 6,
                   px: 8,
@@ -234,7 +381,7 @@ const Ques = () => {
                   fontSize: isMobile ? "1.2rem" : "1.5rem",
                 }}
               >
-                {submitting ? "Saving..." : "Next"}
+                Next
               </Button>
             </Box>
           )}
@@ -242,6 +389,7 @@ const Ques = () => {
       );
     }
 
+    // Existing text input logic for first two questions
     return (
       <motion.div
         key="text-input"
@@ -305,6 +453,7 @@ const Ques = () => {
       </motion.div>
     );
   };
+
 
   return (
     <Box
