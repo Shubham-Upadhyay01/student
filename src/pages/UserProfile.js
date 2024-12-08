@@ -22,6 +22,8 @@ import {
   WorkOutline as WorkOutlineIcon
 } from '@mui/icons-material';
 import { supabase } from "./supabaseClient";
+import {getTrueNetworkInstance} from '../../true-network/index'
+import { config } from "../../true-network/true.config";
 
 const UserDashboard = () => {
   const [userData, setUserData] = useState({
@@ -34,6 +36,12 @@ const UserDashboard = () => {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
+
+        // Get reputation score. 
+        const api = getTrueNetworkInstance();
+
+        const score = await api.getReputationScore(config.algorithm.id, userWallet)
+
         const { data, error } = await supabase
           .from("socials")
           .select("name, email, domain")
