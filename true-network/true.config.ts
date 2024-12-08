@@ -25,7 +25,7 @@ export const config: TrueConfig = {
     hash: '0x62c5e7ea8dff9a389b4c17589bf4ade1f69a2d2e706260f732ff2e78c9d89f96'
   },
   algorithm: {
-    id: 127,
+    id: 138,
     path: 'acm',
     schemas: [githubSchema, linkedInSchema]/*, xSchema isnt included coz twitter scraping failed*/
   },
