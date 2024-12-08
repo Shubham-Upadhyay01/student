@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { 
   Box, 
@@ -11,8 +10,6 @@ import {
   CardContent, 
   Avatar, 
   Divider,
-  Modal,
-  TextField,
 } from "@mui/material";
 import { 
   Dashboard as DashboardIcon, 
@@ -20,13 +17,12 @@ import {
   Settings as SettingsIcon, 
   Help as HelpIcon,
   TrendingUp as TrendingUpIcon,
-  Notifications as NotificationsIcon,
-  AccountBalance as AccountBalanceIcon,
-  WorkOutline as WorkOutlineIcon
+  School as SchoolIcon,
+  Link as LinkIcon,
+  GitHub as GitHubIcon,
+  LinkedIn as LinkedInIcon
 } from '@mui/icons-material';
 import { supabase } from "./supabaseClient";
-import {getTrueNetworkInstance} from '../../true-network/index'
-import { config } from "../../true-network/true.config";
 
 const UserDashboard = () => {
   const [userData, setUserData] = useState({
@@ -36,94 +32,75 @@ const UserDashboard = () => {
   });
 
   const [loading, setLoading] = useState(true);
-  const [notifications, setNotifications] = useState([]);
-  const [upcomingEvents, setUpcomingEvents] = useState([]);
+  const [skills, setSkills] = useState([]);
   const [quickLinks, setQuickLinks] = useState([]);
   const [performance, setPerformance] = useState(0);
-  const [newNotificationsCount, setNewNotificationsCount] = useState(0);
+  const [repositories, setRepositories] = useState([]);
+
+  // Icons map for different platforms
+  const platformIcons = {
+    'GitHub': <GitHubIcon />,
+    'LinkedIn': <LinkedInIcon />,
+    'default': <LinkIcon />
+  };
 
   useEffect(() => {
-    // Generate random data for notifications, events, etc.
-    const generateRandomNotifications = () => {
-      const notificationTypes = [
-        "Project Update", 
-        "New Milestone", 
-        "Team Achievement", 
-        "Deadline Reminder", 
-        "Performance Insight"
-      ];
-      const count = Math.floor(Math.random() * 5) + 1;
-      const generated = Array.from({ length: count }, (_, index) => ({
-        id: index + 1,
-        title: notificationTypes[Math.floor(Math.random() * notificationTypes.length)],
-        message: `Random notification message ${index + 1}`,
-        time: `${Math.floor(Math.random() * 24)} hours ago`
-      }));
-      setNotifications(generated);
-      setNewNotificationsCount(count);
-    };
-
-    const generateRandomEvents = () => {
-      const eventTypes = [
-        "Team Strategy Meeting",
-        "Quarterly Review", 
-        "Project Kickoff", 
-        "Client Presentation", 
-        "Training Session"
-      ];
-      const count = Math.floor(Math.random() * 3) + 1;
-      const generated = Array.from({ length: count }, (_, index) => ({
-        id: index + 1,
-        title: eventTypes[Math.floor(Math.random() * eventTypes.length)],
-        date: `${['Mon', 'Tue', 'Wed', 'Thu', 'Fri'][Math.floor(Math.random() * 5)]}, Dec ${Math.floor(Math.random() * 31) + 1}`,
-        time: `${Math.floor(Math.random() * 12) + 1}:${Math.floor(Math.random() * 60)} ${Math.random() > 0.5 ? 'AM' : 'PM'}`
-      }));
-      setUpcomingEvents(generated);
-    };
-
-    const generateRandomLinks = () => {
-      const linkTypes = [
-        "Project Dashboard",
-        "Resource Center", 
-        "Team Collaboration", 
-        "Performance Metrics", 
-        "Learning Portal"
-      ];
-      const count = Math.floor(Math.random() * 5) + 1;
-      const generated = Array.from({ length: count }, (_, index) => ({
-        id: index + 1,
-        title: linkTypes[Math.floor(Math.random() * linkTypes.length)]
-      }));
-      setQuickLinks(generated);
-    };
-
     const fetchUserData = async () => {
       try {
-
-        // Get reputation score. 
-        const api = getTrueNetworkInstance();
-
-        const score = await api.getReputationScore(config.algorithm.id, userWallet)
-
-        const { data, error } = await supabase
+        // Fetch user data from socials table
+        const { data: userData, error: userError } = await supabase
           .from("socials")
-          .select("name, email, domain")
+          .select("name, email, domain, skills")
           .order("created_at", { ascending: false })
           .limit(1)
           .single();
 
-        if (error) throw error;
+        if (userError) throw userError;
 
+        // Fetch links from links table
+        const { data: linksData, error: linksError } = await supabase
+          .from("links")
+          .select("*")
+          .order("created_at", { ascending: true });
+
+        if (linksError) throw linksError;
+
+        // Set user data
         setUserData({
-          name: data.name,
-          email: data.email,
-          domain: data.domain,
+          name: userData.name,
+          email: userData.email,
+          domain: userData.domain,
         });
+
+        // Ensure skills is an array, even if it's null or undefined
+        const userSkills = Array.isArray(userData.skills) 
+          ? userData.skills 
+          : (userData.skills ? String(userData.skills).split(',').map(skill => skill.trim()) : []);
+
+        // Set skills 
+        setSkills(userSkills);
+
+        // Set quick links from links table
+        setQuickLinks(linksData || []);
         
-        // Generate random data after successful user data fetch
-        generateRandomNotifications();
-        generateRandomEvents();
-        generateRandomLinks();
+        // Find GitHub link
+        const githubLink = linksData.find(link => link.platform === 'GitHub');
+        
+        if (githubLink) {
+          // Fetch GitHub repositories if GitHub link exists
+          const githubUsername = githubLink.url.split('/').pop();
+          const repoResponse = await fetch(`https://api.github.com/users/${githubUsername}/repos`);
+          const reposData = await repoResponse.json();
+          
+          // Take top 4 repositories, sorted by most recently updated
+          const sortedRepos = reposData
+            .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
+            .slice(0, 4);
+          
+          setRepositories(sortedRepos);
+        }
+        
+        // Generate random performance score
         setPerformance((Math.random() * (5 - 3) + 3).toFixed(2));
         
         setLoading(false);
@@ -134,6 +111,7 @@ const UserDashboard = () => {
           email: "Error loading data",
           domain: "Error loading data",
         });
+        setSkills([]);
         setLoading(false);
       }
     };
@@ -283,7 +261,7 @@ const UserDashboard = () => {
           <Grid item xs={12} md={4}>
             <DashboardCard 
               title="Profile Overview" 
-              icon={<AccountBalanceIcon />}
+              icon={<SchoolIcon />}
             >
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 <Avatar 
@@ -340,43 +318,112 @@ const UserDashboard = () => {
           {/* Right Side Columns */}
           <Grid item xs={12} md={8}>
             <Grid container spacing={4}>
-              {/* Quick Actions */}
+              {/* GitHub Repositories */}
               <Grid item xs={12}>
                 <DashboardCard 
-                  title="Quick Actions" 
-                  icon={<DashboardIcon />}
+                  title="GitHub Repositories" 
+                  icon={<GitHubIcon />}
                 >
                   <Grid container spacing={2}>
-                    {[
-                      { icon: <AnalyticsIcon />, label: 'Analytics' },
-                      { icon: <SettingsIcon />, label: 'Settings' },
-                      { icon: <HelpIcon />, label: 'Support' },
-                      { icon: <WorkOutlineIcon />, label: 'Projects' }
-                    ].map((action) => (
-                      <Grid item xs={6} md={3} key={action.label}>
+                    {repositories.length > 0 ? (
+                      repositories.map((repo) => (
+                        <Grid item xs={6} md={3} key={repo.id}>
+                          <Button
+                            fullWidth
+                            variant="outlined"
+                            href={repo.html_url}
+                            target="_blank"
+                            sx={{
+                              color: 'white',
+                              borderColor: 'rgba(255,255,255,0.2)',
+                              justifyContent: 'flex-start',
+                              '&:hover': {
+                                background: 'rgba(255,255,255,0.05)',
+                                borderColor: 'rgba(255,255,255,0.4)'
+                              }
+                            }}
+                          >
+                            {repo.name}
+                          </Button>
+                        </Grid>
+                      ))
+                    ) : (
+                      <Typography 
+                        variant="body2" 
+                        sx={{ 
+                          color: 'rgba(255,255,255,0.6)',
+                          textAlign: 'center',
+                          width: '100%'
+                        }}
+                      >
+                        No repositories found
+                      </Typography>
+                    )}
+                    {repositories.length > 0 && (
+                      <Grid item xs={12} sx={{ textAlign: 'center', mt: 2 }}>
                         <Button
-                          fullWidth
                           variant="outlined"
-                          startIcon={action.icon}
+                          href={`https://github.com/${repositories[0].owner.login}?tab=repositories`}
+                          target="_blank"
                           sx={{
                             color: 'white',
                             borderColor: 'rgba(255,255,255,0.2)',
-                            justifyContent: 'flex-start',
                             '&:hover': {
                               background: 'rgba(255,255,255,0.05)',
                               borderColor: 'rgba(255,255,255,0.4)'
                             }
                           }}
                         >
-                          {action.label}
+                          View All Repositories
                         </Button>
                       </Grid>
-                    ))}
+                    )}
                   </Grid>
                 </DashboardCard>
               </Grid>
 
-              {/* Performance & Notifications */}
+              {/* Skills */}
+              <Grid item xs={12} md={6}>
+                <DashboardCard 
+                  title="Skills" 
+                  icon={<AnalyticsIcon />}
+                >
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'center' }}>
+                    {skills.length > 0 ? (
+                      skills.map((skill, index) => (
+                        <Button
+                          key={index}
+                          variant="outlined"
+                          size="small"
+                          sx={{
+                            color: 'white',
+                            borderColor: 'rgba(255,255,255,0.2)',
+                            '&:hover': {
+                              background: 'rgba(255,255,255,0.05)',
+                              borderColor: 'rgba(255,255,255,0.4)'
+                            }
+                          }}
+                        >
+                          {skill}
+                        </Button>
+                      ))
+                    ) : (
+                      <Typography 
+                        variant="body2" 
+                        sx={{ 
+                          color: 'rgba(255,255,255,0.6)',
+                          textAlign: 'center',
+                          width: '100%'
+                        }}
+                      >
+                        No skills found
+                      </Typography>
+                    )}
+                  </Box>
+                </DashboardCard>
+              </Grid>
+
+              {/* Performance */}
               <Grid item xs={12} md={6}>
                 <DashboardCard 
                   title="Performance" 
@@ -389,66 +436,51 @@ const UserDashboard = () => {
                       color: 'rgba(255,255,255,0.6)' 
                     }}
                   >
-                    {(Math.random() * (5 - 3) + 3).toFixed(2)}% Performance
+                    {performance}% Performance
                   </Typography>
                 </DashboardCard>
               </Grid>
 
-              <Grid item xs={12} md={6}>
-                <DashboardCard 
-                  title="Notifications" 
-                  icon={<NotificationsIcon />}
-                >
-                  <Typography 
-                    variant="body1" 
-                    sx={{ 
-                      textAlign: 'center', 
-                      color: 'rgba(255,255,255,0.6)' 
-                    }}
-                  >
-                    {Math.floor(Math.random() * 5)} New Notifications
-                  </Typography>
-                </DashboardCard>
-              </Grid>
-
-              {/* Future Expandable Cards */}
-              <Grid item xs={12} md={6}>
-                <DashboardCard 
-                  title="Upcoming Events" 
-                  icon={<WorkOutlineIcon />}
-                >
-                  <Typography 
-                    variant="body1" 
-                    sx={{ 
-                      textAlign: 'center', 
-                      color: 'rgba(255,255,255,0.6)' 
-                    }}
-                  >
-                    {Math.floor(Math.random() * 3)} Upcoming Events
-                  </Typography>
-                </DashboardCard>
-              </Grid>
-
-              <Grid item xs={12} md={6}>
+              {/* Quick Links */}
+              <Grid item xs={12}>
                 <DashboardCard 
                   title="Quick Links" 
-                  icon={<SettingsIcon />}
+                  icon={<LinkIcon />}
                 >
-                  <Typography 
-                    variant="body1" 
-                    sx={{ 
-                      textAlign: 'center', 
-                      color: 'rgba(255,255,255,0.6)' 
-                    }}
-                  >
-                    {Math.floor(Math.random() * 5)} Quick Links
-                  </Typography>
+                  <Grid container spacing={2}>
+                    {quickLinks.map((link) => (
+                      <Grid item xs={6} md={3} key={link.id}>
+                        <Button
+                          fullWidth
+                          variant="outlined"
+                          href={link.url}
+                          target="_blank"
+                          startIcon={
+                            platformIcons[link.platform] || platformIcons['default']
+                          }
+                          sx={{
+                            color: 'white',
+                            borderColor: 'rgba(255,255,255,0.2)',
+                            justifyContent: 'flex-start',
+                            '&:hover': {
+                              background: 'rgba(255,255,255,0.05)',
+                              borderColor: 'rgba(255,255,255,0.4)'
+                            }
+                          }}
+                        >
+                          {link.platform}
+                        </Button>
+                      </Grid>
+                    ))}
+                  </Grid>
                 </DashboardCard>
               </Grid>
             </Grid>
           </Grid>
         </Grid>
       </Container>
+
+      {/* Verification Section */}
       <Box
         sx={{
           background: "rgba(255,255,255,0.1)",
@@ -484,6 +516,7 @@ const UserDashboard = () => {
             mb: 3,
             fontWeight: "400",
           }}
+        
         >
           Verification helps us ensure your account is secure and trusted.
         </Typography>

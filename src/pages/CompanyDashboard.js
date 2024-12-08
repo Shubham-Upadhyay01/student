@@ -21,8 +21,8 @@ import {
 } from '@mui/icons-material';
 import { useLocation, useNavigate } from "react-router-dom";
 import supabase from './supabaseClient';
-import { githubSchema } from '../../true-network/schema';
-import { getTrueNetworkInstance } from '../../true-network/true.config';
+//import { githubSchema } from '../../true-network/schema';
+//import { getTrueNetworkInstance } from '../../true-network/true.config';
 
 const CompanyDashboard = () => {
   const theme = useTheme();

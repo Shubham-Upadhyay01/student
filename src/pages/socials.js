@@ -23,6 +23,7 @@ import {
 } from "react-icons/fa";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "./supabaseClient";
+import { motion, AnimatePresence } from "framer-motion";
 
 const Socials = () => {
   const { state } = useLocation();
@@ -47,9 +48,34 @@ const Socials = () => {
   const [snackbarSeverity, setSnackbarSeverity] = useState("success");
   const [account, setAccount] = useState(null);
   
+  // New states for loading
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadingText, setLoadingText] = useState("");
+  const fullLoadingText = "Loading info to Subgraphs...";
+  
   // Ensure email is extracted correctly
   const email = state?.email || localStorage.getItem('userEmail');
   const navigate = useNavigate();
+
+  // Typing effect for loading text
+  useEffect(() => {
+    if (isLoading) {
+      let currentText = "";
+      let index = 0;
+      
+      const typingInterval = setInterval(() => {
+        if (index < fullLoadingText.length) {
+          currentText += fullLoadingText[index];
+          setLoadingText(currentText);
+          index++;
+        } else {
+          clearInterval(typingInterval);
+        }
+      }, 100);
+
+      return () => clearInterval(typingInterval);
+    }
+  }, [isLoading]);
 
   // Validation helper
   const isValidUrl = (string) => {
@@ -236,154 +262,223 @@ const Socials = () => {
     },
   ];
 
-  return (
-    <Box
-      sx={{
-        position: "relative",
-        height: "100vh",
-        overflow: "hidden",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        color: "#ffffff",
-        padding: "20px",
-      }}
-    >
-     
- 
-  
-    {/* Background Video */}
-    <video
-      autoPlay
-      loop
-      muted
-      style={{
-        position: "absolute",
-        width: "100%",
-        height: "100%",
-        objectFit: "cover",
-        zIndex: -1,
-        filter: "brightness(0.5)", // Darken the video slightly
-      }}
-    >
-      <source src="./socials.mp4" type="video/mp4" />
-      Your browser does not support the video tag.
-    </video>
-      <Container maxWidth="md">
-        <Box
-          sx={{
-            backgroundColor: "rgba(0,0,0,0.4)",
-            backdropFilter: "blur(10px)",
-            borderRadius: "20px",
-            padding: "40px",
-            textAlign: "center",
-            boxShadow: "0 8px 32px 0 rgba(0, 0, 0, 0.3)",
-          }}
-        >
-          <Typography variant="h2" gutterBottom>
-            {name ? `Hey, ${name}! Add Your Social Links` : "Add Your Social Links"}
-          </Typography>
+  // Navigation method with loading transition
+  const handleNextNavigation = () => {
+    setIsLoading(true);
+    
+    // Simulate loading and then navigate
+    setTimeout(() => {
+      navigate("/UserProfile");
+    }, 3500); // Slightly longer to accommodate typing effect
+  };
 
-          <Grid container spacing={3} justifyContent="center" alignItems="center">
-            {socialButtons.map((social) => (
-              <Grid item key={social.provider}>
-                <IconButton
-                  onClick={social.onClick}
-                  sx={{
-                    color: social.color,
-                    fontSize: "3rem",
-                    background: "rgba(255,255,255,0.2)",
-                    borderRadius: "50%",
-                    padding: "15px",
-                    opacity: connectedAccounts[social.provider] ? 0.5 : 1,
+  return (
+    <>
+      <AnimatePresence>
+        {isLoading && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5 }}
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
+              backgroundColor: "black",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              zIndex: 9999,
+              color: "white",
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ 
+                type: "spring", 
+                stiffness: 120, 
+                damping: 10 
+              }}
+            >
+              <Typography 
+                variant="h2" 
+                sx={{ 
+                  fontSize: '4rem',  // Larger font size
+                  fontWeight: 'bold',
+                  textAlign: 'center',
+                  background: 'linear-gradient(to right, #00ffff, #00ff99)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                }}
+              >
+                {loadingText}
+                <motion.span
+                  animate={{ opacity: [1, 0] }}
+                  transition={{ 
+                    duration: 0.7, 
+                    repeat: Infinity 
                   }}
                 >
-                  <social.icon />
-                </IconButton>
+                  |
+                </motion.span>
+              </Typography>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {!isLoading && (
+        <Box
+          sx={{
+            position: "relative",
+            height: "100vh",
+            overflow: "hidden",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "#ffffff",
+            padding: "20px",
+          }}
+        >
+          {/* Background Video */}
+          <video
+            autoPlay
+            loop
+            muted
+            style={{
+              position: "absolute",
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              zIndex: -1,
+              filter: "brightness(0.5)", // Darken the video slightly
+            }}
+          >
+            <source src="./socials.mp4" type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
+          
+          <Container maxWidth="md">
+            <Box
+              sx={{
+                backgroundColor: "rgba(0,0,0,0.4)",
+                backdropFilter: "blur(10px)",
+                borderRadius: "20px",
+                padding: "40px",
+                textAlign: "center",
+                boxShadow: "0 8px 32px 0 rgba(0, 0, 0, 0.3)",
+              }}
+            >
+              <Typography variant="h2" gutterBottom>
+                {name ? `Hey, ${name}! Add Your Social Links` : "Add Your Social Links"}
+              </Typography>
+
+              <Grid container spacing={3} justifyContent="center" alignItems="center">
+                {socialButtons.map((social) => (
+                  <Grid item key={social.provider}>
+                    <IconButton
+                      onClick={social.onClick}
+                      sx={{
+                        color: social.color,
+                        fontSize: "3rem",
+                        background: "rgba(255,255,255,0.2)",
+                        borderRadius: "50%",
+                        padding: "15px",
+                        opacity: connectedAccounts[social.provider] ? 0.5 : 1,
+                      }}
+                    >
+                      <social.icon />
+                    </IconButton>
+                  </Grid>
+                ))}
               </Grid>
-            ))}
-          </Grid>
 
-          <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center', gap: 2 }}>
-            <Button 
-              variant="contained" 
-              onClick={handleMetaMaskConnect}
-              startIcon={<FaWallet />}
-            >
-              {connectedAccounts.metamask
-                ? `Connected: ${account?.substring(0, 6)}...${account?.substring(account.length - 4)}`
-                : "Connect MetaMask"}
-            </Button>
+              <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center', gap: 2 }}>
+                <Button 
+                  variant="contained" 
+                  onClick={handleMetaMaskConnect}
+                  startIcon={<FaWallet />}
+                >
+                  {connectedAccounts.metamask
+                    ? `Connected: ${account?.substring(0, 6)}...${account?.substring(account.length - 4)}`
+                    : "Connect MetaMask"}
+                </Button>
 
-            <Button 
-              variant="contained" 
-              onClick={handleAadhaarConnect}
-            >
-              {connectedAccounts.aadhaar ? "Aadhaar Connected" : "Connect Aadhaar"}
-            </Button>
-          </Box>
+                <Button 
+                  variant="contained" 
+                  onClick={handleAadhaarConnect}
+                >
+                  {connectedAccounts.aadhaar ? "Aadhaar Connected" : "Connect Aadhaar"}
+                </Button>
+              </Box>
 
-          <Box sx={{ mt: 3 }}>
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={() => navigate("/UserProfile")}
+              <Box sx={{ mt: 3 }}>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={handleNextNavigation}
+                >
+                  Go Next
+                </Button>
+              </Box>
+            </Box>
+          </Container>
+
+          {/* Social Link Input Dialogs */}
+          {["github", "linkedin", "twitter", "instagram"].map((provider) => (
+            <Dialog
+              key={provider}
+              open={openDialog === provider}
+              onClose={() => setOpenDialog(null)}
             >
-              Go Next
-            </Button>
-          </Box>
+              <DialogTitle>
+                Add {provider.charAt(0).toUpperCase() + provider.slice(1)} Link
+              </DialogTitle>
+              <DialogContent>
+                <TextField
+                  autoFocus
+                  margin="dense"
+                  label={`${provider.charAt(0).toUpperCase() + provider.slice(1)} Profile URL`}
+                  type="url"
+                  fullWidth
+                  value={socialLinks[provider]}
+                  onChange={(e) => handleLinkChange(provider, e.target.value)}
+                />
+              </DialogContent>
+              <DialogActions>
+                <Button onClick={() => setOpenDialog(null)}>Cancel</Button>
+                <Button 
+                  onClick={() => handleSocialLinkSave(provider)}
+                  color="primary"
+                >
+                  Save
+                </Button>
+              </DialogActions>
+            </Dialog>
+          ))}
+
+          {/* Snackbar for Feedback */}
+          <Snackbar
+            open={snackbarOpen}
+            autoHideDuration={6000}
+            onClose={() => setSnackbarOpen(false)}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+          >
+            <Alert 
+              onClose={() => setSnackbarOpen(false)} 
+              severity={snackbarSeverity}
+              sx={{ width: '100%' }}
+            >
+              {snackbarMessage}
+            </Alert>
+          </Snackbar>
         </Box>
-      </Container>
-
-      {/* Social Link Input Dialogs */}
-      {["github", "linkedin", "twitter", "instagram"].map((provider) => (
-        <Dialog
-          key={provider}
-          open={openDialog === provider}
-          onClose={() => setOpenDialog(null)}
-        >
-          <DialogTitle>
-            Add {provider.charAt(0).toUpperCase() + provider.slice(1)} Link
-          </DialogTitle>
-          <DialogContent>
-            <TextField
-              autoFocus
-              margin="dense"
-              label={`${provider.charAt(0).toUpperCase() + provider.slice(1)} Profile URL`}
-              type="url"
-              fullWidth
-              value={socialLinks[provider]}
-              onChange={(e) => handleLinkChange(provider, e.target.value)}
-            />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setOpenDialog(null)}>Cancel</Button>
-            <Button 
-              onClick={() => handleSocialLinkSave(provider)}
-              color="primary"
-            >
-              Save
-            </Button>
-          </DialogActions>
-        </Dialog>
-      ))}
-
-      {/* Snackbar for Feedback */}
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={6000}
-        onClose={() => setSnackbarOpen(false)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert 
-          onClose={() => setSnackbarOpen(false)} 
-          severity={snackbarSeverity}
-          sx={{ width: '100%' }}
-        >
-          {snackbarMessage}
-        </Alert>
-      </Snackbar>
-    </Box>
+      )}
+    </>
   );
 };
 
