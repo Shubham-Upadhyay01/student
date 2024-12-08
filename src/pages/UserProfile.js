@@ -9,7 +9,9 @@ import {
   Card, 
   CardContent, 
   Avatar, 
-  Divider
+  Divider,
+  Modal,
+  TextField,
 } from "@mui/material";
 import { 
   Dashboard as DashboardIcon, 
@@ -30,6 +32,8 @@ const UserDashboard = () => {
     domain: "Loading...",
   });
   const [loading, setLoading] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [amount, setAmount] = useState("");
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -432,5 +436,7 @@ const UserDashboard = () => {
     </Box>
   );
 };
+
+   
 
 export default UserDashboard;

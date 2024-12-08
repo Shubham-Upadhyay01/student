@@ -6,6 +6,7 @@ const Int = () => {
   const [showOverlay, setShowOverlay] = useState(false);
   const [isHoveringSignIn, setIsHoveringSignIn] = useState(false);
   const [isHoveringSignUp, setIsHoveringSignUp] = useState(false);
+  const [isHoveringCheckerLogin, setIsHoveringCheckerLogin] = useState(false);
   const [showSignInModal, setShowSignInModal] = useState(false);
 
   useEffect(() => {
@@ -48,18 +49,18 @@ const Int = () => {
           <div style={styles.textContainer}>
             <p style={styles.subtitle}>Let's dive in</p>
             <div style={styles.buttonContainer}>
-            <button
-  style={
-    isHoveringSignIn
-      ? { ...styles.button, ...styles.buttonHover }
-      : styles.button
-  }
-  onMouseEnter={() => setIsHoveringSignIn(true)}
-  onMouseLeave={() => setIsHoveringSignIn(false)}
-  onClick={() => navigate("/comp")}
->
-  Company Sign up
-</button>
+              <button
+                style={
+                  isHoveringSignIn
+                    ? { ...styles.button, ...styles.buttonHover }
+                    : styles.button
+                }
+                onMouseEnter={() => setIsHoveringSignIn(true)}
+                onMouseLeave={() => setIsHoveringSignIn(false)}
+                onClick={() => navigate("/comp")}
+              >
+                Company Sign Up
+              </button>
               <button
                 style={
                   isHoveringSignUp
@@ -73,6 +74,18 @@ const Int = () => {
                 User Sign Up
               </button>
             </div>
+            <button
+              style={
+                isHoveringCheckerLogin
+                  ? { ...styles.button, ...styles.buttonHover }
+                  : styles.button
+              }
+              onMouseEnter={() => setIsHoveringCheckerLogin(true)}
+              onMouseLeave={() => setIsHoveringCheckerLogin(false)}
+              onClick={() => navigate("/verifier")}
+            >
+              Login for Checker
+            </button>
           </div>
         </div>
       )}
@@ -177,6 +190,7 @@ const styles = {
     height: "100%",
     backgroundColor: "rgba(0, 0, 0, 0.5)",
     display: "flex",
+    flexDirection: "column",
     justifyContent: "center",
     alignItems: "center",
     animation: "fadeInOverlay 2s ease-in-out",
@@ -186,6 +200,7 @@ const styles = {
     flexDirection: "column",
     alignItems: "center",
     animation: "fadeInScale 2s ease-in-out",
+    gap: "20px", // Added gap for better spacing
   },
   subtitle: {
     fontSize: "28px",
@@ -220,18 +235,18 @@ const styles = {
     left: 0,
     width: "100vw",
     height: "100vh",
-    backgroundColor: "rgba(0, 0, 0, 0.8)", // More transparent for a smooth effect
+    backgroundColor: "rgba(0, 0, 0, 0.8)",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
     animation: "fadeInOverlay 0.5s ease-in-out",
   },
   modalContent: {
-    backgroundColor: "rgba(255, 255, 255, 0.95)", // Slight transparency
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
     padding: "40px",
-    borderRadius: "15px", // Softer border-radius
-    boxShadow: "0px 8px 30px rgba(0, 0, 0, 0.2)", // Stronger shadow for depth
-    animation: "slideUp 0.5s ease-in-out", // Slide-up effect for opening
+    borderRadius: "15px",
+    boxShadow: "0px 8px 30px rgba(0, 0, 0, 0.2)",
+    animation: "slideUp 0.5s ease-in-out",
     textAlign: "center",
     width: "400px",
   },
@@ -239,13 +254,13 @@ const styles = {
     fontSize: "24px",
     marginBottom: "20px",
     color: "#333",
-    animation: "fadeInOverlay 0.5s ease-in-out", // Smooth title fade-in
+    animation: "fadeInOverlay 0.5s ease-in-out",
   },
   inputField: {
     width: "100%",
     padding: "12px",
     margin: "12px 0",
-    borderRadius: "8px", // Softer corners for input
+    borderRadius: "8px",
     border: "1px solid #ccc",
     fontSize: "16px",
   },
