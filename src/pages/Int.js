@@ -59,7 +59,7 @@ const Int = () => {
                 onMouseLeave={() => setIsHoveringSignIn(false)}
                 onClick={() => navigate("/comp")}
               >
-                Company Sign Up
+                Admin Sign Up
               </button>
               <button
                 style={
@@ -71,7 +71,7 @@ const Int = () => {
                 onMouseLeave={() => setIsHoveringSignUp(false)}
                 onClick={() => navigate("/ques")}
               >
-                User Sign Up
+                Student Sign Up
               </button>
             </div>
             <button
@@ -84,7 +84,7 @@ const Int = () => {
               onMouseLeave={() => setIsHoveringCheckerLogin(false)}
               onClick={() => navigate("/verifier")}
             >
-              Login for Checker
+              Faculty sign up
             </button>
           </div>
         </div>
