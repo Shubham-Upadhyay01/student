@@ -8,45 +8,45 @@ import {
   useMediaQuery, 
   useTheme, 
   Container,
-  Chip
+  Snackbar,
+  Alert,
+  InputAdornment,
+  IconButton
 } from "@mui/material";
+import { 
+  AccountCircle,
+  Email,
+  Lock,
+  Visibility,
+  VisibilityOff
+} from '@mui/icons-material';
 import { useNavigate } from "react-router-dom";
 import supabase from './supabaseClient';
+import bcrypt from 'bcryptjs';
 
-const CompanyReg = () => {
+const AdminReg = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const navigate = useNavigate();
 
   const questions = [
-    "What's your company name?",
-    "Select your company's primary tech domain",
-    "Select skill sets required for your team"
-  ];
-
-  const techDomains = [
-    "Web Development", "Mobile Development", "Cloud Computing", 
-    "AI/Machine Learning", "Cybersecurity", "Data Science"
-  ];
-
-  const skillSets = [
-    "React", "Node.js", "Python", "Java", "JavaScript", 
-    "TypeScript", "AWS", "Docker", "Kubernetes", 
-    "Machine Learning", "SQL", "MongoDB"
+    "What's your name?",
+    "Enter your email address",
+    "Set a strong password"
   ];
 
   const [displayedText, setDisplayedText] = useState("");
   const [answer, setAnswer] = useState("");
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [formData, setFormData] = useState({
-    companyName: "",
-    techDomain: "",
-    requiredSkills: []
+    name: "",
+    email: "",
+    password: ""
   });
   const [introCompleted, setIntroCompleted] = useState(false);
-  const [selectedTechDomain, setSelectedTechDomain] = useState(null);
-  const [selectedSkills, setSelectedSkills] = useState([]);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const typeWriter = useCallback((text, callback) => {
     let currentText = "";
@@ -68,7 +68,7 @@ const CompanyReg = () => {
 
   useEffect(() => {
     if (!introCompleted) {
-      typeWriter("Let's set up your company profile", () => {
+      typeWriter("Welcome to Admin Registration", () => {
         setTimeout(() => setIntroCompleted(true), 1000);
       });
     } else if (questions[currentQuestionIndex]) {
@@ -76,307 +76,209 @@ const CompanyReg = () => {
     }
   }, [currentQuestionIndex, introCompleted, typeWriter]);
 
-  const handleSubmit = () => {
-    const trimmedAnswer = answer.trim();
-
-    if (!trimmedAnswer) return;
-
-    if (currentQuestionIndex === 0) {
-      if (trimmedAnswer.length < 2) {
-        alert("Please enter a valid company name");
+  const handleSubmit = async () => {
+    try {
+      const trimmedAnswer = answer.trim();
+      if (!trimmedAnswer) {
+        setError("Please provide an answer");
         return;
       }
-      setFormData(prev => ({ ...prev, companyName: trimmedAnswer }));
+
+      if (currentQuestionIndex === 0) {
+        if (trimmedAnswer.length < 2) {
+          setError("Name must be at least 2 characters long");
+          return;
+        }
+        setFormData(prev => ({ ...prev, name: trimmedAnswer }));
+      } else if (currentQuestionIndex === 1) {
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(trimmedAnswer)) {
+          setError("Please enter a valid email address");
+          return;
+        }
+        setFormData(prev => ({ ...prev, email: trimmedAnswer }));
+      } else if (currentQuestionIndex === 2) {
+        if (trimmedAnswer.length < 6) {
+          setError("Password must be at least 6 characters long");
+          return;
+        }
+        
+        const hashedPassword = await bcrypt.hash(trimmedAnswer, 10);
+        setFormData(prev => ({ ...prev, password: hashedPassword }));
+        await registerAdmin({ ...formData, password: hashedPassword });
+        return;
+      }
+
+      setAnswer("");
+      setCurrentQuestionIndex(prev => prev + 1);
+      setError(null);
+    } catch (err) {
+      setError(err.message);
     }
-
-    setAnswer("");
-    setCurrentQuestionIndex(prev => prev + 1);
   };
 
-  const handleTechDomainSelect = (domain) => {
-    setSelectedTechDomain(domain);
-    setFormData(prev => ({ ...prev, techDomain: domain }));
-    setCurrentQuestionIndex(prev => prev + 1);
-  };
-
-  const handleSkillSelect = (skill) => {
-    setSelectedSkills(prev => 
-      prev.includes(skill) 
-        ? prev.filter(s => s !== skill)
-        : [...prev, skill]
-    );
-  };
-
-  const proceedToNextStep = async () => {
-    if (selectedSkills.length === 0) {
-      alert("Please select at least one skill set");
-      return;
-    }
-
-    const finalFormData = {
-      ...formData,
-      requiredSkills: selectedSkills
-    };
-
+  const registerAdmin = async (finalData) => {
     try {
       setSubmitting(true);
-      
-      const { data, error } = await supabase
-      .from('companies')
-      .insert({
-        company_name: finalFormData.companyName,
-        tech_domain: finalFormData.techDomain,
-        required_skills: finalFormData.requiredSkills
-      })
-      .select();
+      const { data, error } = await supabase.from('admins').insert({
+        name: finalData.name,
+        email: finalData.email,
+        password: finalData.password
+      }).select();
 
       if (error) throw error;
-      
-      // Redirect to dashboard immediately after successful submission
-      navigate("/company-dashboard", {
-        state: {
-          companyName: finalFormData.companyName,
-          techDomain: finalFormData.techDomain,
-          requiredSkills: finalFormData.requiredSkills
-        },
-        replace: true,
-      });
+      navigate("/company-dashboard", { replace: true });
     } catch (error) {
-      console.error('Error during submission:', error);
-      alert("Submission failed. Please try again.");
+      console.error("Error during registration:", error);
+      setError("Registration failed. Please try again.");
     } finally {
       setSubmitting(false);
     }
   };
 
-  const renderQuestionContent = () => {
-    if (currentQuestionIndex === 1) {
-      return (
-        <motion.div
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          <Box
-            sx={{
-              display: "flex",
-              flexWrap: "wrap",
-              justifyContent: "center",
-              gap: 3,
-              mt: 6,
-              mb: 6,
-            }}
-          >
-            {techDomains.map((domain) => (
-              <Button
-                key={domain}
-                variant={selectedTechDomain === domain ? "contained" : "outlined"}
-                onClick={() => handleTechDomainSelect(domain)}
-                sx={{
-                  borderRadius: 6,
-                  px: 4,
-                  py: 2,
-                  fontSize: isMobile ? "1rem" : "1.3rem",
-                  color: "white",
-                  borderColor: "white",
-                  "&:hover": {
-                    borderColor: "white"
-                  },
-                  ...(selectedTechDomain === domain ? {} : {
-                    border: "1px solid white",
-                    color: "white"
-                  })
-                }}
-              >
-                {domain}
-              </Button>
-            ))}
-          </Box>
-        </motion.div>
-      );
+  const getIcon = () => {
+    switch (currentQuestionIndex) {
+      case 0:
+        return <AccountCircle sx={{ color: 'rgba(255,255,255,0.7)' }} />;
+      case 1:
+        return <Email sx={{ color: 'rgba(255,255,255,0.7)' }} />;
+      case 2:
+        return <Lock sx={{ color: 'rgba(255,255,255,0.7)' }} />;
+      default:
+        return null;
     }
-
-    if (currentQuestionIndex === 2) {
-      return (
-        <motion.div
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          <Box
-            sx={{
-              display: "flex",
-              flexWrap: "wrap",
-              justifyContent: "center",
-              gap: 2,
-              mt: 6,
-              mb: 6,
-            }}
-          >
-            {skillSets.map((skill) => (
-              <Chip
-                key={skill}
-                label={skill}
-                onClick={() => handleSkillSelect(skill)}
-                color={selectedSkills.includes(skill) ? "primary" : "default"}
-                variant={selectedSkills.includes(skill) ? "filled" : "outlined"}
-                sx={{
-                  margin: '0.5rem',
-                  fontSize: isMobile ? "0.9rem" : "1.1rem",
-                  color: "white",
-                  borderColor: "white",
-                  ...(selectedSkills.includes(skill) ? {} : {
-                    border: "1px solid white",
-                    color: "white"
-                  })
-                }}
-              />
-            ))}
-          </Box>
-          {selectedSkills.length > 0 && (
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={proceedToNextStep}
-              disabled={submitting}
-              sx={{
-                borderRadius: 6,
-                px: 8,
-                py: 2,
-                fontSize: isMobile ? "1.2rem" : "1.5rem",
-                color: "white",
-                borderColor: "white"
-              }}
-            >
-              {submitting ? "Saving..." : "Complete Registration"}
-            </Button>
-          )}
-        </motion.div>
-      );
-    }
-
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 50 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-      >
-        <TextField
-          fullWidth
-          variant="outlined"
-          label={questions[currentQuestionIndex]}
-          value={answer}
-          onChange={(e) => setAnswer(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-          InputLabelProps={{
-            style: { color: 'white' }
-          }}
-          sx={{
-            "& .MuiInputBase-input": {
-              color: "white",
-              fontSize: isMobile ? "1.3rem" : "1.6rem",
-            },
-            "& .MuiOutlinedInput-root": {
-              "& fieldset": {
-                borderColor: "white"
-              },
-              "&:hover fieldset": {
-                borderColor: "white"
-              },
-              "&.Mui-focused fieldset": {
-                borderColor: "white"
-              }
-            }
-          }}
-        />
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={handleSubmit}
-          sx={{
-            mt: 4,
-            borderRadius: 6,
-            px: 8,
-            py: 2,
-            fontSize: isMobile ? "1.2rem" : "1.5rem",
-            color: "white",
-            borderColor: "white"
-          }}
-        >
-          Next
-        </Button>
-      </motion.div>
-    );
   };
 
   return (
     <Box
       sx={{
         position: "relative",
+        display: "flex",
         height: "100vh",
         overflow: "hidden",
+        bgcolor: "#000"
       }}
     >
-      <video
-        autoPlay
-        loop
-        muted
-        playsInline
-        style={{
-          position: "absolute",
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
-          zIndex: -1,
-        }}
-      >
-        <source src="/quess.mp4" type="video/mp4" />
-        Your browser does not support the video tag.
-      </video>
-
-      <Container 
-        maxWidth="md"
+      <Container
         sx={{
           display: "flex",
           flexDirection: "column",
           justifyContent: "center",
           alignItems: "center",
-          height: "100%",
           textAlign: "center",
-          position: "relative",
-          zIndex: 1,
+          flex: 1,
+          px: 3,
+          mt: 3,
         }}
       >
-        <AnimatePresence mode="wait">
-          {!introCompleted ? (
-            <Typography
-              variant="h2"
-              sx={{
+        <motion.div
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <Typography
+            variant="h4"
+            color="white"
+            sx={{
+              fontSize: isMobile ? "2.5rem" : "3.5rem",
+              fontWeight: 500,
+              lineHeight: 1.5,
+              mb: 4
+            }}
+          >
+            {displayedText}
+          </Typography>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <TextField
+            fullWidth
+            variant="outlined"
+            value={answer}
+            onChange={(e) => setAnswer(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && !submitting && handleSubmit()}
+            type={currentQuestionIndex === 2 ? (showPassword ? "text" : "password") : "text"}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  {getIcon()}
+                </InputAdornment>
+              ),
+              endAdornment: currentQuestionIndex === 2 ? (
+                <InputAdornment position="end">
+                  <IconButton
+                    onClick={() => setShowPassword(!showPassword)}
+                    edge="end"
+                    sx={{ color: 'rgba(255,255,255,0.7)' }}
+                  >
+                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              ) : null
+            }}
+            sx={{
+              width: isMobile ? "100%" : "400px",
+              "& .MuiInputBase-input": {
                 color: "white",
-                fontSize: isMobile ? "2.5rem" : "4rem",
+                fontSize: isMobile ? "1.3rem" : "1.6rem",
+                p: 2,
+              },
+              "& .MuiInputLabel-root": {
+                color: "rgba(255,255,255,0.7)",
+                fontSize: isMobile ? "1.1rem" : "1.3rem",
+              },
+              "& .MuiOutlinedInput-root": {
+                borderRadius: 4,
+                "& fieldset": {
+                  borderColor: "rgba(255,255,255,0.3)",
+                },
+                "&:hover fieldset": {
+                  borderColor: "white",
+                },
+                "&.Mui-focused fieldset": {
+                  borderColor: "white",
+                },
+              },
+            }}
+          />
+          
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+            <Button
+              variant="contained"
+              onClick={handleSubmit}
+              disabled={submitting || !answer.trim()}
+              sx={{
+                borderRadius: 6,
+                px: 8,
+                py: 2,
+                fontSize: isMobile ? "1.2rem" : "1.5rem",
               }}
             >
-              {displayedText}
-            </Typography>
-          ) : (
-            <>
-              <Typography
-                variant="h4"
-                sx={{
-                  mb: 6,
-                  color: "white",
-                  fontSize: isMobile ? "1.8rem" : "2.5rem",
-                }}
-              >
-                {displayedText}
-              </Typography>
-              {renderQuestionContent()}
-            </>
-          )}
-        </AnimatePresence>
+              {submitting ? "Processing..." : currentQuestionIndex === questions.length - 1 ? "Complete Registration" : "Next"}
+            </Button>
+          </Box>
+        </motion.div>
       </Container>
+
+      <Snackbar
+        open={!!error}
+        autoHideDuration={6000}
+        onClose={() => setError(null)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert
+          severity="error"
+          onClose={() => setError(null)}
+          sx={{ width: '100%' }}
+        >
+          {error}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
 
-export default CompanyReg;
+export default AdminReg;
