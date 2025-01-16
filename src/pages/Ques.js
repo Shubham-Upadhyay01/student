@@ -12,7 +12,8 @@ import {
   Alert
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
-import supabase from './supabaseClient'; // Import the Supabase client
+import bcrypt from 'bcryptjs';
+import supabase from './supabaseClient';
 
 const Ques = () => {
   const theme = useTheme();
@@ -109,7 +110,7 @@ const Ques = () => {
         newFormData.email = trimmedAnswer;
         break;
       case 2:
-        newFormData.password = trimmedAnswer;
+        newFormData.password = trimmedAnswer; // Raw password stored temporarily
         break;
       case 3:
         newFormData.department = trimmedAnswer;
@@ -138,12 +139,16 @@ const Ques = () => {
     try {
       setSubmitting(true);
 
+      // Hash the password before saving
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(data.password, salt);
+
       const { error } = await supabase
         .from('students')
         .insert([{
           name: data.name,
           email: data.email,
-          password: data.password,
+          password: hashedPassword, // Save the hashed password
           department: data.department,
           enrollment_year: parseInt(data.enrollment_year, 10),
           phone: data.phone,
@@ -220,7 +225,6 @@ const Ques = () => {
                 mb: 4,
                 fontWeight: "bold",
                 color: "primary.main",
-                
                 fontSize: isMobile ? "1.8rem" : "2.5rem",
               }}
             >
@@ -231,7 +235,7 @@ const Ques = () => {
               fullWidth
               variant="outlined"
               value={answer}
-              
+              type={currentQuestionIndex === 2 ? "password" : "text"}
               onChange={(e) => setAnswer(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
               sx={{

@@ -12,7 +12,7 @@ const Int = () => {
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowOverlay(true);
-    }, 8000);
+    }, 2000);
 
     return () => clearTimeout(timer);
   }, []);
@@ -35,7 +35,7 @@ const Int = () => {
   return (
     <div style={styles.container}>
       <video
-        src="/VED2.mp4" // Replace with your video URL
+        src="/vid.mp4" // Replace with your video URL
         autoPlay
         muted
         loop

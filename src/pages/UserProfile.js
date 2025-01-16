@@ -4,61 +4,65 @@ import {
   Typography, 
   Container, 
   CircularProgress, 
-  Button, 
   Grid, 
   Card, 
-  CardContent, 
-  Avatar, 
-  Divider,
+  CardContent,
+  Avatar,
+  Paper,
+  Alert
 } from "@mui/material";
-import { 
-  School as SchoolIcon
+import {
+  School as SchoolIcon,
+  Email as EmailIcon,
+  Phone as PhoneIcon,
+  CalendarToday as CalendarIcon,
+  Badge as BadgeIcon
 } from '@mui/icons-material';
-import { supabase } from "./supabaseClient";
+import supabase from "./supabaseClient";
 
 const UserDashboard = () => {
   const [userData, setUserData] = useState({
-    name: "Loading...",
-    email: "Loading...",
-    department: "Loading...",
-    enrollment_year: "Loading...",
-    phone: "Loading...",
+    name: "",
+    email: "",
+    department: "",
+    enrollment_year: "",
+    phone: "",
   });
-
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        // Fetch last updated user data from students table
-        const { data: userData, error } = await supabase
-          .from("Students")
-          .select("name, email, department, enrollment_year, phone")
-          .order("updated_at", { ascending: false })
+        // Fetch the first student record without ordering by ID
+        const { data, error } = await supabase
+          .from('students')
+          .select('*')
           .limit(1)
           .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error("Supabase error:", error);
+          setError(error.message);
+          return;
+        }
 
-        // Set user data
-        setUserData({
-          name: userData.name,
-          email: userData.email,
-          department: userData.department,
-          enrollment_year: userData.enrollment_year,
-          phone: userData.phone,
-        });
-
-        setLoading(false);
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-        setUserData({
-          name: "Error loading data",
-          email: "Error loading data",
-          department: "Error loading data",
-          enrollment_year: "Error loading data",
-          phone: "Error loading data",
-        });
+        if (data) {
+          console.log("Fetched data:", data);
+          setUserData({
+            name: data.name || 'N/A',
+            email: data.email || 'N/A',
+            department: data.department || 'N/A',
+            enrollment_year: data.enrollment_year || 'N/A',
+            phone: data.phone || 'N/A',
+          });
+        } else {
+          setError("No student data found");
+        }
+      } catch (err) {
+        console.error("Error fetching user data:", err);
+        setError(err.message);
+      } finally {
         setLoading(false);
       }
     };
@@ -66,42 +70,30 @@ const UserDashboard = () => {
     fetchUserData();
   }, []);
 
-  const DashboardCard = ({ title, children }) => (
-    <Card 
-      sx={{ 
-        background: 'linear-gradient(to bottom, #1c1c1c, #121212)',
-        borderRadius: '12px',
-        color: 'white',
+  const InfoCard = ({ icon: Icon, title, value }) => (
+    <Card
+      sx={{
         height: '100%',
+        background: 'linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05))',
+        backdropFilter: 'blur(10px)',
         border: '1px solid rgba(255,255,255,0.1)',
-        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-        transition: 'transform 0.3s ease',
+        borderRadius: '16px',
+        transition: 'transform 0.2s ease-in-out',
         '&:hover': {
-          transform: 'scale(1.02)',
+          transform: 'translateY(-5px)',
         }
       }}
-      elevation={0}
     >
       <CardContent>
-        <Box sx={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          mb: 2,
-          color: 'rgba(255,255,255,0.7)'
-        }}>
-          <SchoolIcon sx={{ color: 'rgba(255,255,255,0.7)', mr: 2, fontSize: '2rem' }} />
-          <Typography 
-            variant="h6" 
-            sx={{ 
-              fontWeight: '600',
-              color: 'rgba(255,255,255,0.9)',
-              letterSpacing: '0.5px'
-            }}
-          >
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+          <Icon sx={{ color: 'primary.main', fontSize: 28, mr: 1 }} />
+          <Typography variant="subtitle1" sx={{ color: 'rgba(255,255,255,0.7)' }}>
             {title}
           </Typography>
         </Box>
-        {children}
+        <Typography variant="h6" sx={{ color: 'white', fontWeight: 500 }}>
+          {value}
+        </Typography>
       </CardContent>
     </Card>
   );
@@ -114,11 +106,10 @@ const UserDashboard = () => {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: 'linear-gradient(to right, #141414, #000000)',
-          color: "white",
+          background: 'linear-gradient(45deg, #1a1a1a, #2d2d2d)',
         }}
       >
-        <CircularProgress color="inherit" size={80} thickness={2} />
+        <CircularProgress sx={{ color: 'white' }} />
       </Box>
     );
   }
@@ -127,123 +118,162 @@ const UserDashboard = () => {
     <Box
       sx={{
         minHeight: "100vh",
-        background: 'linear-gradient(to right, #141414, #000000)',
-        color: "white",
-        py: 4,
+        background: 'linear-gradient(45deg, #1a1a1a, #2d2d2d)',
+        pt: 8,
+        pb: 6
       }}
     >
-      <Container maxWidth="xl">
-        {/* Dashboard Header */}
-        <Box 
-          sx={{
-            display: "flex", 
-            justifyContent: "space-between", 
-            alignItems: "center", 
-            mb: 4,
-            px: 2,
-          }}
-        >
-          <Box>
-            <Typography 
-              variant="h3" 
-              sx={{ 
-                fontWeight: '700',
-                color: 'rgba(255,255,255,0.9)',
-                mb: 1,
-                letterSpacing: '-1px'
-              }}
-            >
-              Dashboard
-            </Typography>
-            <Typography 
-              variant="h6" 
-              sx={{ 
-                color: 'rgba(255,255,255,0.6)',
-                fontWeight: '300'
-              }}
-            >
-              Welcome back, {userData.name}
-            </Typography>
-          </Box>
+      <Container maxWidth="lg">
+        {error && (
+          <Alert 
+            severity="error" 
+            sx={{ 
+              mb: 4,
+              backgroundColor: 'rgba(211, 47, 47, 0.1)',
+              color: 'white',
+              '& .MuiAlert-icon': {
+                color: 'white'
+              }
+            }}
+          >
+            {error}
+          </Alert>
+        )}
+        
+        {/* Header Section */}
+        <Box sx={{ mb: 6, textAlign: 'center' }}>
+          <Avatar
+            sx={{
+              width: 120,
+              height: 120,
+              margin: '0 auto',
+              mb: 3,
+              bgcolor: 'primary.main',
+              border: '4px solid rgba(255,255,255,0.2)',
+              fontSize: '3rem'
+            }}
+          >
+            {userData.name?.[0]?.toUpperCase() || '?'}
+          </Avatar>
+          <Typography 
+            variant="h3" 
+            sx={{ 
+              color: 'white',
+              fontWeight: 700,
+              mb: 1
+            }}
+          >
+            {userData.name}
+          </Typography>
+          <Typography 
+            variant="h6" 
+            sx={{ 
+              color: 'rgba(255,255,255,0.6)',
+              fontWeight: 400
+            }}
+          >
+            Student Profile
+          </Typography>
         </Box>
 
-        {/* Dashboard Grid */}
-        <Grid container spacing={4} sx={{ px: 2 }}>
-          {/* Profile Card */}
-          <Grid item xs={12} md={4}>
-            <DashboardCard 
-              title="Profile Overview"
-            >
-              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <Avatar 
-                  sx={{ 
-                    width: 100, 
-                    height: 100, 
-                    mb: 2, 
-                    border: '2px solid rgba(255,255,255,0.2)',
-                    background: 'rgba(255,255,255,0.1)',
-                    color: 'white'
-                  }}
-                >
-                  {userData.name[0].toUpperCase()}
-                </Avatar>
-                <Typography 
-                  variant="h5" 
-                  sx={{ 
-                    fontWeight: '600',
-                    color: 'rgba(255,255,255,0.9)',
-                    mb: 1 
-                  }}
-                >
-                  {userData.name}
-                </Typography>
-                <Typography 
-                  variant="subtitle1" 
-                  sx={{ 
-                    color: 'rgba(255,255,255,0.6)',
-                    mb: 2 
-                  }}
-                >
-                  {userData.department}
-                </Typography>
-                <Divider 
-                  sx={{ 
-                    my: 2, 
-                    width: '100%', 
-                    background: 'rgba(255,255,255,0.1)' 
-                  }} 
-                />
-                <Typography 
-                  variant="body1" 
-                  sx={{ 
-                    textAlign: 'center',
-                    color: 'rgba(255,255,255,0.7)'
-                  }}
-                >
-                  Email: {userData.email}
-                </Typography>
-                <Typography 
-                  variant="body1" 
-                  sx={{ 
-                    textAlign: 'center',
-                    color: 'rgba(255,255,255,0.7)'
-                  }}
-                >
-                  Phone: {userData.phone}
-                </Typography>
-                <Typography 
-                  variant="body1" 
-                  sx={{ 
-                    textAlign: 'center',
-                    color: 'rgba(255,255,255,0.7)'
-                  }}
-                >
-                  Enrolled in: {userData.enrollment_year}
-                </Typography>
-              </Box>
-            </DashboardCard>
+        {/* Info Cards Grid */}
+        <Grid container spacing={3} sx={{ mb: 6 }}>
+          <Grid item xs={12} sm={6} md={4}>
+            <InfoCard
+              icon={BadgeIcon}
+              title="Department"
+              value={userData.department}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={4}>
+            <InfoCard
+              icon={EmailIcon}
+              title="Email Address"
+              value={userData.email}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={4}>
+            <InfoCard
+              icon={PhoneIcon}
+              title="Phone Number"
+              value={userData.phone}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <InfoCard
+              icon={CalendarIcon}
+              title="Enrollment Year"
+              value={userData.enrollment_year}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <InfoCard
+              icon={SchoolIcon}
+              title="Student Status"
+              value="Active"
+            />
           </Grid>
         </Grid>
+
+        {/* Additional Info Section */}
+        <Paper
+          sx={{
+            p: 4,
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05))',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: '16px',
+          }}
+        >
+          <Typography 
+            variant="h5" 
+            sx={{ 
+              color: 'white',
+              mb: 3,
+              fontWeight: 600
+            }}
+          >
+            Academic Information
+          </Typography>
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={6}>
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="subtitle2" sx={{ color: 'rgba(255,255,255,0.6)', mb: 1 }}>
+                  Department
+                </Typography>
+                <Typography variant="body1" sx={{ color: 'white' }}>
+                  {userData.department}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography variant="subtitle2" sx={{ color: 'rgba(255,255,255,0.6)', mb: 1 }}>
+                  Enrollment Year
+                </Typography>
+                <Typography variant="body1" sx={{ color: 'white' }}>
+                  {userData.enrollment_year}
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="subtitle2" sx={{ color: 'rgba(255,255,255,0.6)', mb: 1 }}>
+                  Email Address
+                </Typography>
+                <Typography variant="body1" sx={{ color: 'white' }}>
+                  {userData.email}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography variant="subtitle2" sx={{ color: 'rgba(255,255,255,0.6)', mb: 1 }}>
+                  Phone Number
+                </Typography>
+                <Typography variant="body1" sx={{ color: 'white' }}>
+                  {userData.phone}
+                </Typography>
+              </Box>
+            </Grid>
+          </Grid>
+        </Paper>
       </Container>
     </Box>
   );
